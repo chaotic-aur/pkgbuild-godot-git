@@ -51,9 +51,9 @@ pkgver() {
 build() {
   # Not unbundled (yet):
   #  enet (contains no upstreamed IPv6 support)
-  #  libsquish, recast, xatlas
+  #  libsquish, recast, xatlas, certs
   #  AUR: libwebm, squish
-  local to_unbundle="certs embree freetype libogg libpng libtheora libvorbis libvpx libwebp mbedtls miniupnpc opus pcre2 wslay zlib zstd"
+  local to_unbundle="embree freetype libogg libpng libtheora libvorbis libvpx libwebp mbedtls miniupnpc opus pcre2 wslay zlib zstd"
   local system_libs=""
   for _lib in $to_unbundle; do
     system_libs+="builtin_"$_lib"=no "

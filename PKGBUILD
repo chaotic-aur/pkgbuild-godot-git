@@ -7,7 +7,7 @@
 _arch='x86_64'
 _pkgname=godot
 pkgname=${_pkgname}-git
-pkgver=4.0.r47960.gdc4b616596
+pkgver=4.0.r47964.g3a59c833f1
 pkgrel=1
 pkgdesc="Godot Game Engine: An advanced, feature packed, multi-platform 2D and 3D game engine. Git version."
 arch=("${_arch}")
@@ -36,7 +36,7 @@ prepare() {
     else
         cd "${srcdir}/${_pkgname}"
         git fetch origin master
-        git reset --hard origin/master        
+        git reset --hard origin/master
     fi
 }
 
@@ -63,15 +63,14 @@ build() {
   cd "${srcdir}"/${_pkgname}
   export BUILD_NAME=arch_linux
   scons -j$((`nproc`+1))
-    bits=64 \
-    colored=yes \
     platform=linuxbsd \
-    system_certs_path=/etc/ssl/certs/ca-certificates.crt \
-    target=editor \    
-    compiledb=yes \
-    deprecated=no \
+    target=editor \
+    bits=64 \
     linker=mold \
     use_lto=yes \
+    deprecated=no \
+    compiledb=yes \
+    system_certs_path=/etc/ssl/certs/ca-certificates.crt \
     CFLAGS="$CFLAGS -fPIC -Wl,-z,relro,-z,now -w" \
     CXXFLAGS="$CXXFLAGS -fPIC -Wl,-z,relro,-z,now -w" \
     LINKFLAGS="$LDFLAGS" \

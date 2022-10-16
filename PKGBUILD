@@ -2,47 +2,41 @@
 # Contributor: Daniel Segesdi <sege/sdi.d/ani@/gma/il.com>
 # Contributor: Cristian Porras <porrascristian@gmail.com>
 # Contributor: Matthew Bentley <matthew@mtbentley.us>
-# Contributor: tas <tasgon_@out/look.com>
-# Contributor: QuantMint <qua/ntmint@/protonm/ail.com>
+# Contributor: Peter Jung (ptr1337) <admin at ptr1337 dot dev>
 
+_arch='x86_64'
 _pkgname=godot
 pkgname=${_pkgname}-git
-pkgver=4.0.r0.g
+pkgver=4.0.r47960.gdc4b616596
 pkgrel=1
 pkgdesc="Godot Game Engine: An advanced, feature packed, multi-platform 2D and 3D game engine. Git version."
+arch=("${_arch}")
 url="http://www.godotengine.org"
 license=('MIT')
-arch=('i686' 'x86_64')
+depends=('embree' 'glu' 'freetype2' 'libglvnd' 'libtheora' 'libvorbis' 'libvpx' 'libwebp' 'alsa-lib' 'pipewire'
+         'libwslay' 'libxcursor' 'libxi' 'libxinerama' 'libxrandr' 'mbedtls' 'miniupnpc' 'mesa' 'opusfile')
 makedepends=('gcc' 'git' 'scons' 'pkgconf' 'yasm' 'mold')
-depends=('alsa-lib' 'glu' 'libglvnd' 'libxcursor' 'libxinerama' 'libxi' 'libxrandr' 'mesa' 'pipewire-pulse' 'systemd-libs')
-optdepends=()
-conflicts=("${_pkgname}")
+optdepends=('godot-export-templates-git: Godot export templates')
 provides=("${_pkgname}")
-_arch=''
-if test "$CARCH" == x86_64; then
-  _arch=('x86_64')
-else
-  _arch=('32')
-fi
-
+conflicts=("${_pkgname}")
 source=(
-	godot.desktop
-	icon.png
-)
+	"godot::git+https://github.com/godotengine/${_pkgname}.git#branch=master"
+	'godot.desktop'
+	'icon.png')
 sha256sums=(
+	'SKIP'
 	'2ae039a3879b23e157f2125e0b326fa1ef66d56bfd596c790e8943d27652e93a'
-	'99f9d17c4355b274ef0c08069cf6e756a98cd5c9d9d22d1b39f79538134277e1'
-)
+	'99f9d17c4355b274ef0c08069cf6e756a98cd5c9d9d22d1b39f79538134277e1')
 
 prepare() {
     if [ ! -d "${srcdir}/${_pkgname}" ]
     then
         cd ${srcdir}
-        git clone https://github.com/godotengine/godot.git --branch master --single-branch --depth 1
+        git clone https://github.com/godotengine/godot.git --branch master --single-branch
     else
         cd "${srcdir}/${_pkgname}"
-        git fetch --depth 1 origin master
-        git reset --hard origin/master
+        git fetch origin master
+        git reset --hard origin/master        
     fi
 }
 
@@ -50,13 +44,38 @@ pkgver() {
     cd "${srcdir}/${_pkgname}"
     _major=$(cat version.py|grep "major" | sed 's/major = //')
     _minor=$(cat version.py|grep "minor" | sed 's/minor = //')
-    _revision=$(printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)")
+    _revision=$(printf "r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)")
     echo "${_major}.${_minor}.${_revision}"
 }
 
 build() {
-    cd "${srcdir}"/${_pkgname}
-    scons p=linuxbsd target=editor deprecated=no bits=64 use_lto=yes udev=yes compiledb=yes linker=mold -j$((`nproc`+1))
+  # Not unbundled (yet):
+  #  enet (contains no upstreamed IPv6 support)
+  #  libsquish, recast, xatlas
+  #  AUR: libwebm, squish
+  local to_unbundle="certs embree freetype libogg libpng libtheora libvorbis libvpx libwebp mbedtls miniupnpc opus pcre2 wslay zlib zstd"
+  local system_libs=""
+  for _lib in $to_unbundle; do
+    system_libs+="builtin_"$_lib"=no "
+    rm -rf thirdparty/$_lib
+  done
+     
+  cd "${srcdir}"/${_pkgname}
+  export BUILD_NAME=arch_linux
+  scons -j$((`nproc`+1))
+    bits=64 \
+    colored=yes \
+    platform=linuxbsd \
+    system_certs_path=/etc/ssl/certs/ca-certificates.crt \
+    target=editor \    
+    compiledb=yes \
+    deprecated=no \
+    linker=mold \
+    use_lto=yes \
+    CFLAGS="$CFLAGS -fPIC -Wl,-z,relro,-z,now -w" \
+    CXXFLAGS="$CXXFLAGS -fPIC -Wl,-z,relro,-z,now -w" \
+    LINKFLAGS="$LDFLAGS" \
+    $system_libs
 }
 
 package() {

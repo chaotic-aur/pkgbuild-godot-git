@@ -13,9 +13,9 @@ pkgdesc="Godot Game Engine: An advanced, feature packed, multi-platform 2D and 3
 arch=("${_arch}")
 url="http://www.godotengine.org"
 license=('MIT')
-depends=('embree' 'glu' 'freetype2' 'libglvnd' 'libtheora' 'libvorbis' 'libvpx' 'libwebp' 'alsa-lib' 'pipewire'
-         'libwslay' 'libxcursor' 'libxi' 'libxinerama' 'libxrandr' 'mbedtls' 'miniupnpc' 'mesa' 'opusfile')
-makedepends=('gcc' 'git' 'scons' 'pkgconf' 'yasm' 'mold')
+depends=('embree' 'glu' 'freetype2' 'libglvnd' 'libtheora' 'libvorbis' 'libvpx' 'libwebp' 'alsa-lib' 'pipewire' 'dbus' 'harfbuzz'
+         'libwslay' 'libxcursor' 'libxi' 'libxinerama' 'libxrandr' 'mbedtls' 'miniupnpc' 'mesa' 'opusfile' 'libspeechd' 'pcre2')
+makedepends=('gcc' 'git' 'scons' 'pkgconf' 'mold')
 optdepends=('godot-export-templates-git: Godot export templates')
 provides=("${_pkgname}")
 conflicts=("${_pkgname}")
@@ -29,31 +29,33 @@ sha256sums=(
 	'99f9d17c4355b274ef0c08069cf6e756a98cd5c9d9d22d1b39f79538134277e1')
 
 prepare() {
-    if [ ! -d "${srcdir}/${_pkgname}" ]
-    then
-        cd ${srcdir}
-        git clone https://github.com/godotengine/godot.git --branch master --single-branch
-    else
-        cd "${srcdir}/${_pkgname}"
-        git fetch origin master
-        git reset --hard origin/master
-    fi
+  if [ ! -d "${srcdir}/${_pkgname}" ]
+  then
+      cd ${srcdir}
+      git clone https://github.com/godotengine/godot.git --branch master --single-branch
+  else
+      cd "${srcdir}/${_pkgname}"
+      git fetch origin master
+      git reset --hard origin/master
+  fi
+  # Disable the check that adds -no-pie to LINKFLAGS, for gcc != 6
+  sed -i 's,0] >,0] =,g' ${srcdir}/${_pkgname}/platform/linuxbsd/detect.py
 }
 
 pkgver() {
-    cd "${srcdir}/${_pkgname}"
-    _major=$(cat version.py|grep "major" | sed 's/major = //')
-    _minor=$(cat version.py|grep "minor" | sed 's/minor = //')
-    _revision=$(printf "r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)")
-    echo "${_major}.${_minor}.${_revision}"
+  cd "${srcdir}/${_pkgname}"
+  _major=$(cat version.py|grep "major" | sed 's/major = //')
+  _minor=$(cat version.py|grep "minor" | sed 's/minor = //')
+  _revision=$(printf "r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)")
+  echo "${_major}.${_minor}.${_revision}"
 }
 
 build() {
   # Not unbundled (yet):
   #  enet (contains no upstreamed IPv6 support)
-  #  libsquish, recast, xatlas, certs
+  #  libsquish, recast, xatlas
   #  AUR: libwebm, squish
-  local to_unbundle="embree freetype libogg libpng libtheora libvorbis libvpx libwebp mbedtls miniupnpc opus pcre2 wslay zlib zstd"
+  local to_unbundle="certs embree freetype harfbuzz libogg libpng libtheora libvorbis libvpx libwebp mbedtls miniupnpc opus pcre2 wslay zlib zstd"
   local system_libs=""
   for _lib in $to_unbundle; do
     system_libs+="builtin_"$_lib"=no "
@@ -62,7 +64,7 @@ build() {
      
   cd "${srcdir}"/${_pkgname}
   export BUILD_NAME=arch_linux
-  scons -j$((`nproc`+1))
+  scons -j$((`nproc`+1)) \
     platform=linuxbsd \
     target=editor \
     bits=64 \

@@ -52,8 +52,8 @@ optdepends=(
 )
 
 source=(
-  '$_pkgname.desktop'
-  '$_pkgname.png'
+  "$_pkgname.desktop"
+  "$_pkgname.png"
 )
 sha256sums=(
   '2ae039a3879b23e157f2125e0b326fa1ef66d56bfd596c790e8943d27652e93a'
